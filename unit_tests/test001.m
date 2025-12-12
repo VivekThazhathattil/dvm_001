@@ -12,7 +12,8 @@ u(abs(x + 1i*y) < 1) = NaN;
 v(abs(x + 1i*y) < 1) = NaN;
 
 figure;
-contourf(x, y, v, 250, 'LineStyle', 'none');
+contourf(x, y, v, 200, 'LineColor', 'none');
+shading flat;
 colorbar;
 colormap jet;
 title('Transverse Field Contour Plot');
@@ -22,7 +23,8 @@ clim([-1,1]);
 axis equal;
 
 figure;
-contourf(x, y, u, 250, 'LineStyle', 'none');
+contourf(x, y, u, 200, 'LineColor', 'none');
+shading flat;
 colorbar;
 colormap jet;
 title('Streamwise Field Contour Plot');

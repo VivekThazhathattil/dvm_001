@@ -30,13 +30,16 @@ sim_config_t* sim_read_config(const char *filename) {
             else if (strcmp(key, "y_max") == 0) config->y_max = atof(value);
             else if (strcmp(key, "nx") == 0) config->nx = (size_t)atoi(value);
             else if (strcmp(key, "ny") == 0) config->ny = (size_t)atoi(value);
+            else if (strcmp(key, "num_iters") == 0) config->niters = (size_t)atoi(value);
         }
     }
     fclose(f);
     return config;
 }
 
-sim_t* sim_create(double U, double c, double dt, double x_min, double x_max, double y_min, double y_max, size_t nx, size_t ny) {
+sim_t* sim_create(double U, double c, double dt,\
+     double x_min, double x_max, double y_min, double y_max,\
+      size_t nx, size_t ny, size_t niters) {
     sim_t *s;
     s = (sim_t *) malloc(sizeof(sim_t));
     s->U = U;
@@ -53,6 +56,7 @@ sim_t* sim_create(double U, double c, double dt, double x_min, double x_max, dou
     s->y = NULL;
     s->X = NULL;
     s->Y = NULL;
+    s->niters = niters;
     sim_create_meshgrid(s);
     return s;
 }
@@ -152,11 +156,16 @@ void sim_write_complex_field_imag_part_to_csv(const char *filename, double compl
     fclose(f);
 }
 
-void sim_write_vel_coords(double complex **u, sim_t *s) {
-    sim_write_complex_field_real_part_to_csv("unit_tests/u_velocity.csv", u, s->ny, s->nx);
-    sim_write_complex_field_imag_part_to_csv("unit_tests/v_velocity.csv", u, s->ny, s->nx);
-    sim_write_double_field_to_csv("unit_tests/x_coordinates.csv", s->X, s->ny, s->nx);
-    sim_write_double_field_to_csv("unit_tests/y_coordinates.csv", s->Y, s->ny, s->nx);
+void sim_write_vel_coords(double complex **u, sim_t *s, int timestep) {
+    char filename[256];
+    sprintf(filename, "unit_tests/u_velocity_%d.csv", timestep);
+    sim_write_complex_field_real_part_to_csv(filename, u, s->ny, s->nx);
+    sprintf(filename, "unit_tests/v_velocity_%d.csv", timestep);
+    sim_write_complex_field_imag_part_to_csv(filename, u, s->ny, s->nx);
+    sprintf(filename, "unit_tests/x_coordinates_%d.csv", timestep);
+    sim_write_double_field_to_csv(filename, s->X, s->ny, s->nx);
+    sprintf(filename, "unit_tests/y_coordinates_%d.csv", timestep);
+    sim_write_double_field_to_csv(filename, s->Y, s->ny, s->nx);
 }
 
 void sim_debug_put_arbitrary_vortices(dvm_t *dvm, size_t num_vorts, \
@@ -171,23 +180,46 @@ void sim_free_complex_field(double complex **field, size_t ny) {
     free(field);
 }
 
+void sim_advect_vortices(sim_t *s) {
+    dvm_advect_vortices(s->dvm, s->dt);
+}
+
 int main() {
     sim_t *s;
+    sep_pt_t *sep_pt;
     double complex **u;
     sim_config_t *config;
+
+    int N_azim;
+    double nu, H_sep_thr;
+
+    N_azim = 400; // number of azimuthal points for the cylinder
+    nu = 1.5e-5; // kinematic viscosity
+    H_sep_thr = 2.7; // shape-factor threshold for separation
 
     config = sim_read_config("setup.config");
     if (config == NULL) return 1;
 
     s = sim_create(config->U, config->c, config->dt, config->x_min, config->x_max, 
-                   config->y_min, config->y_max, config->nx, config->ny);
+                   config->y_min, config->y_max, config->nx, config->ny, config->niters);
     sim_debug_put_arbitrary_vortices(s->dvm, config->num_vorts, config->x_min, config->x_max, 
                                      config->y_min, config->y_max);
-    u = sim_compute_complex_velocity_field(s);
-    sim_write_vel_coords(u, s);
-    
-    sim_free_complex_field(u, s->ny);
+
+    sep_pt = sep_pt_module_init(s->c, nu, s->U, H_sep_thr, N_azim, s->dvm);
+
+    for (int i = 0; i < s->niters; ++i) {
+        #if DEBUG_OLD
+            fprintf(stdout, "Simulation Timestep %d\n", i);
+        #endif
+        sep_pt_get_sep_angles(sep_pt, s->dt);
+        //u = sim_compute_complex_velocity_field(s);
+        //sim_write_vel_coords(u, s, i);
+        //sim_free_complex_field(u, s->ny);
+        sim_advect_vortices(s);
+    }
+
     sim_kill(s);
+    sep_pt_module_free(sep_pt);
     free(config);
     return 0;
 }

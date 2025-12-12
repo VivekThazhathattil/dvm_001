@@ -7,8 +7,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#define EPSILON 1e-10
-
 typedef struct DVM_s{
   double U; // free-stream velocity
   double c; // cylinder radius
@@ -23,5 +21,5 @@ double complex dvm_get_complex_velocity(double complex z, dvm_t *dvm);
 void dvm_append_vortex(dvm_t* dvm, vortex_t* v);
 void dvm_debug_put_arbitrary_vortices(dvm_t *dvm, size_t num_vorts, \
     double x_min, double x_max, double y_min, double y_max);
-
+void dvm_advect_vortices(dvm_t *dvm, double dt);
 #endif

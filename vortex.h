@@ -4,6 +4,8 @@
 #include <complex.h>
 #include <stddef.h>
 
+#define EPSILON 1e-10
+
 typedef struct VORTEX_s{
     double complex z;
     double gamma;
@@ -14,8 +16,9 @@ void vortex_set_position(vortex_t *v, double complex z);
 void vortex_set_gamma(vortex_t *v, double gamma);
 double complex vortex_get_position(vortex_t *v);
 double vortex_get_gamma(vortex_t *v);
-
 double complex vortex_get_velocity(vortex_t *v, double complex z, double c);
+void vortex_advect(vortex_t* v, double complex vel, double dt);
+void vortex_set_nascent_vortex_strength(vortex_t *v, double Us, double dt);
 
 #endif
 

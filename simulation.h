@@ -2,6 +2,7 @@
 #define SIMULATION_H
 
 #include "discrete_vortex_method.h"
+#include "separation_point.h"
 #include <complex.h>
 #include <stddef.h>
 
@@ -20,6 +21,7 @@ typedef struct SIMULATION_s{
   double *y; // y-coordinates of the grid points
   double **X; // x mesh grid
   double **Y; // y mesh grid
+  int niters; // number of iterations
 } sim_t;
 
 typedef struct SIM_CONFIG_s{
@@ -33,17 +35,21 @@ typedef struct SIM_CONFIG_s{
     double y_max;
     size_t nx;
     size_t ny;
+    size_t niters;
 } sim_config_t;
 
 
-sim_t* sim_create(double U, double c, double dt, double x_min, double x_max, double y_min, double y_max, size_t nx, size_t ny);
+sim_t* sim_create(double U, double c, double dt,\
+   double x_min, double x_max, double y_min, double y_max, size_t nx, size_t ny, size_t niters);
 void sim_kill(sim_t *s);
 void sim_create_meshgrid(sim_t *s);
 double complex** sim_compute_complex_velocity_field(sim_t *s);
-void sim_write_vel_coords(double complex **u, sim_t *s);
+void sim_write_vel_coords(double complex **u, sim_t *s, int timestep);
 void sim_write_double_field_to_csv(const char *filename, double **field, size_t ny, size_t nx);
 void sim_write_complex_field_real_part_to_csv(const char *filename, double complex **field, size_t ny, size_t nx);
 void sim_write_complex_field_imag_part_to_csv(const char *filename, double complex **field, size_t ny, size_t nx);
 void sim_debug_put_arbitrary_vortices(dvm_t *dvm, size_t num_vorts, double x_min, double x_max, double y_min, double y_max);
+void sim_free_complex_field(double complex **field, size_t ny);
+void sim_advect_vortices(sim_t *s);
 
 #endif

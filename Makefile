@@ -1,5 +1,14 @@
 CC ?= gcc
 CFLAGS ?= -std=c11 -O2 -Wall -Wextra -pedantic -I.
+DEBUG ?= 0
+
+# To enable debugging, set DEBUG=1 when invoking make
+ifeq ($(DEBUG), 1)
+	CFLAGS += -g -DDEBUG=1
+else
+	CFLAGS += -DDEBUG=0
+endif
+
 LDFLAGS ?= -lm
 
 SRCS := $(wildcard *.c)
