@@ -68,10 +68,17 @@ void vortex_set_nascent_vortex_position(vortex_t *v, double o_p_mj, double theta
     v->z = x + I * y;
 }
 
-vortex_t* create_nascent_vortex(vortex_t *v, double o_p_mj, double theta_s, double Us, double dt) {
-    vortex_t *v_nascent;
-    v_nascent = (vortex_t *) malloc(sizeof(vortex_t));
-    vortex_set_nascent_vortex_position(v_nascent, o_p_mj, theta_s);
-    vortex_set_nascent_vortex_strength(v_nascent, Us, dt);
-    return v_nascent;
+double vortex_get_nascent_vortex_dist_from_centre(vortex_t *v, double Us) {
+  return (1 + fabs(v->gamma)/(2*PI*Us)) / (1 - fabs(v->gamma)/(2*PI*Us));
+}
+
+vortex_t* vortex_create_nascent_vortex(double theta, double Us, double dt) {
+  double o_p_mj; // 1 + mj
+  vortex_t *v_nascent;
+
+  v_nascent = (vortex_t *) malloc(sizeof(vortex_t));
+  vortex_set_nascent_vortex_strength(v_nascent, Us, dt);
+  o_p_mj = vortex_get_nascent_vortex_dist_from_centre(v_nascent, Us);
+  vortex_set_nascent_vortex_position(v_nascent, o_p_mj, theta);
+  return v_nascent;
 }

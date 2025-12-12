@@ -55,8 +55,6 @@ double complex dvm_get_complex_velocity(double complex z, dvm_t *dvm) {
             }
         #endif
     }
-
-    
     return non_vort_contrib + vort_contrib;
 }
 
@@ -94,12 +92,39 @@ void dvm_advect_vortices(dvm_t *dvm, double dt) {
     for (i = 0; i < dvm->num_vorts; ++i) {
         vel = dvm_get_complex_velocity(dvm->vs[i].z, dvm);
         #if DEBUG_OLD
-            fprintf(stdout, "DEBUG: dvm: Advecting Vortex %zu: Velocity = (%f, %f)\n", i, creal(vel), cimag(vel));
+            fprintf(stdout, "DEBUG: dvm: Advecting Vortex %zu: Velocity = (%f, %f)\n", \
+                i, creal(vel), cimag(vel));
         #endif
         vortex_advect(&(dvm->vs[i]), vel, dt);
     }
 }
 
-void dvm_create_nascent_vortices() {
+double complex dvm_pos_from_angle(double c,double theta) {
+    double x, y;
+    x =  c * cos(theta);
+    y =  c * sin(theta);
+    return x + I * y;
+}
 
+void dvm_create_nascent_vortices(dvm_t* dvm, double* theta) {
+    vortex_t *v0, *v1;
+    double complex cmplx_vel[2], z[2];
+    double Us[2];
+
+    /*-- get the position of the separation point from the separation angle --*/
+    z[0] = dvm_pos_from_angle(dvm->c, theta[0]);
+    z[1] = dvm_pos_from_angle(dvm->c, theta[1]);
+
+    /*-- get the velocity at the separation point --*/
+    cmplx_vel[0] = dvm_get_complex_velocity(z[0], dvm);
+    cmplx_vel[1] = dvm_get_complex_velocity(z[1], dvm);
+
+    Us[0] = cabs(cmplx_vel[0]);
+    Us[1] = cabs(cmplx_vel[1]);
+
+    v0 = vortex_create_nascent_vortex(theta[0], Us[0], dvm->dt);
+    v1 = vortex_create_nascent_vortex(theta[1], Us[1], dvm->dt);
+
+    dvm_append_vortex(dvm, v0);
+    dvm_append_vortex(dvm, v1);
 }

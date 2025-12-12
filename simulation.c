@@ -162,10 +162,12 @@ void sim_write_vel_coords(double complex **u, sim_t *s, int timestep) {
     sim_write_complex_field_real_part_to_csv(filename, u, s->ny, s->nx);
     sprintf(filename, "unit_tests/v_velocity_%d.csv", timestep);
     sim_write_complex_field_imag_part_to_csv(filename, u, s->ny, s->nx);
-    sprintf(filename, "unit_tests/x_coordinates_%d.csv", timestep);
-    sim_write_double_field_to_csv(filename, s->X, s->ny, s->nx);
-    sprintf(filename, "unit_tests/y_coordinates_%d.csv", timestep);
-    sim_write_double_field_to_csv(filename, s->Y, s->ny, s->nx);
+    if (timestep == 0) {
+        sprintf(filename, "unit_tests/x_coordinates_%d.csv", timestep);
+        sim_write_double_field_to_csv(filename, s->X, s->ny, s->nx);
+        sprintf(filename, "unit_tests/y_coordinates_%d.csv", timestep);
+        sim_write_double_field_to_csv(filename, s->Y, s->ny, s->nx);
+    }
 }
 
 void sim_debug_put_arbitrary_vortices(dvm_t *dvm, size_t num_vorts, \
@@ -190,12 +192,17 @@ int main() {
     double complex **u;
     sim_config_t *config;
 
-    int N_azim;
-    double nu, H_sep_thr;
+    int N_azim, write_count;
+    double nu, H_sep_thr, write_dt;
+    double thres_shedding_angle_hi, thres_shedding_angle_lo;
 
     N_azim = 400; // number of azimuthal points for the cylinder
     nu = 1.5e-5; // kinematic viscosity
     H_sep_thr = 2.7; // shape-factor threshold for separation
+    thres_shedding_angle_hi = 80 * PI / 180; // threshold angle for shedding vortices
+    thres_shedding_angle_lo = 80 * PI / 180; // threshold angle for shedding vortices
+    write_dt = 0.125; // write data every write_dt seconds
+    write_count = 0;
 
     config = sim_read_config("setup.config");
     if (config == NULL) return 1;
@@ -208,13 +215,23 @@ int main() {
     sep_pt = sep_pt_module_init(s->c, nu, s->U, H_sep_thr, N_azim, s->dvm);
 
     for (int i = 0; i < s->niters; ++i) {
-        #if DEBUG_OLD
+        #if DEBUG
             fprintf(stdout, "Simulation Timestep %d\n", i);
         #endif
         sep_pt_get_sep_angles(sep_pt, s->dt);
-        //u = sim_compute_complex_velocity_field(s);
-        //sim_write_vel_coords(u, s, i);
-        //sim_free_complex_field(u, s->ny);
+        if (sep_pt->sep_angles_in_rad[0] < thres_shedding_angle_hi && \
+            sep_pt->sep_angles_in_rad[1] > thres_shedding_angle_lo) {
+           dvm_create_nascent_vortices(s->dvm, sep_pt->sep_angles_in_rad);
+        }
+        if (i % (int)(write_dt / s->dt) == 0) {
+            #if DEBUG
+                fprintf(stdout, "Writing data...\n");
+            #endif
+            u = sim_compute_complex_velocity_field(s);
+            sim_write_vel_coords(u, s, write_count);
+            sim_free_complex_field(u, s->ny);
+            write_count++;
+        }
         sim_advect_vortices(s);
     }
 

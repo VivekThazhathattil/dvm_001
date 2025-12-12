@@ -22,4 +22,6 @@ void dvm_append_vortex(dvm_t* dvm, vortex_t* v);
 void dvm_debug_put_arbitrary_vortices(dvm_t *dvm, size_t num_vorts, \
     double x_min, double x_max, double y_min, double y_max);
 void dvm_advect_vortices(dvm_t *dvm, double dt);
+void dvm_create_nascent_vortices(dvm_t* dvm, double* theta);
+double complex dvm_pos_from_angle(double c,double theta);
 #endif
